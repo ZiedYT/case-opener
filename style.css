@@ -1,0 +1,636 @@
+/* --- CSS: Video Game Case Opener Styles --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+:root {
+    /* Define key dimensions and colors for easier modification */
+    --item-width: 200px;
+    --item-height: 160px;
+    --item-margin: 4px;
+    --indicator-color: #fca5a5; /* Light Red */
+    --gradient-start: #1f2937; /* Dark Slate */
+    --gradient-end: #0f172a; /* Midnight Blue */
+    --item-bg: #1f2937;
+    --win-border: #f59e0b; /* Amber for Win Modal */
+    
+    /* Windows 95 Colors */
+    --win95-gray: #c0c0c0;
+    --win95-dark-gray: #808080;
+    --win95-light-gray: #dfdfdf;
+    --win95-white: #ffffff;
+    --win95-black: #000000;
+    --win95-blue: #000080;
+    --win95-light-blue: #0000ff;
+    --win95-teal: #008080;
+}
+
+body {
+    font-family: 'MS Sans Serif', 'Microsoft Sans Serif', sans-serif;
+    background-color: var(--win95-teal); /* Windows 95 teal background */
+    color: var(--win95-black);
+    overflow: hidden; /* Prevent all scrolling on body */
+    margin: 0;
+    padding: 1rem;
+    height: 100vh;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Main Layout --- */
+.main-layout {
+    display: flex;
+    height: calc(100vh - 10rem);
+    width: 100%;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.main-content-center {
+    flex: 1;
+    padding: 0;
+    overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+}
+
+.main-content-center::before {
+    content: 'Case Opener';
+    display: block;
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%);
+    color: var(--win95-white);
+    padding: 2px 4px;
+    font-size: 15px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.main-content-center > * {
+    padding-left: 1vh;
+    padding-right: 1.5vw;
+}
+
+.main-content-center > *:first-child {
+    padding-top: 1vh;
+}
+
+/* --- Roller Container Parent --- */
+.main-content-center > div:has(.roller-window) {
+    background-color: var(--win95-gray);
+    padding: 8px;
+}
+
+/* --- Roller Container and Animation --- */
+.roller-window {
+    width: 100%;
+    max-width: 100%;
+    height: var(--item-height);
+    overflow: hidden;
+    position: relative;
+    background: var(--win95-white);
+    border-radius: 0;
+    border: 2px inset var(--win95-dark-gray);
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-white);
+}
+
+.raffle-roller-container {
+    display: flex;
+    position: absolute;
+    left: 0;
+    top: 0;
+    transition: none; /* Initial state, JS sets transition for roll */
+    will-change: transform;
+}
+
+.indicator {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 100%;
+    background-color: var(--indicator-color);
+    z-index: 10;
+    box-shadow: 0 0 10px var(--indicator-color), 0 0 20px rgba(252, 165, 165, 0.5);
+}
+
+/* --- Case Card Styling --- */
+.case-name-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--win95-gray);
+    padding: 0.25rem;
+    border-top: 2px solid var(--win95-dark-gray);
+}
+
+.case-name-overlay p {
+    margin: 0;
+    color: var(--win95-black);
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* --- Item Styling --- */
+.item {
+    flex-shrink: 0;
+    width: var(--item-width);
+    height: var(--item-height);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    background-color: var(--win95-gray);
+    border-radius: 0;
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 0;
+    margin-bottom: 4px;
+    margin-top: 8px;
+}
+
+.item > div:last-child {
+    padding: 0 8px 8px 8px;
+}
+
+/* Rarity Classes (Used for borders and text color on items) */
+.rarity-common {
+    border-color: #4b5563; /* Gray */
+    color: #9ca3af;
+}
+.rarity-uncommon {
+    border-color: #3b82f6; /* Blue */
+    color: #60a5fa;
+}
+.rarity-rare {
+    border-color: #8b5cf6; /* Violet */
+    color: #a78bfa;
+}
+.rarity-legendary {
+    border-color: #f59e0b; /* Amber */
+    color: #fcd34d;
+}
+
+.winning-item {
+    /* Stronger highlight for the winner */
+    border: 2px inset var(--win95-white) !important;
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray), 0 0 0 2px var(--win95-blue);
+    transform: scale(1.05);
+    background-color: var(--win95-light-blue) !important;
+}
+
+/* --- Inventory Panel (Right Sidebar) --- */
+.inventory-panel {
+    width: 18vw;
+    min-width: 200px;
+    max-width: 280px;
+    height: 100%;
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-radius: 0;
+    padding: 0.5rem !important;
+    box-sizing: border-box;
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+}
+
+.inventory-panel h3 {
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%);
+    color: var(--win95-white);
+    padding: 2px 4px;
+    font-size: 15px;
+    font-weight: bold;
+    margin: -0.5rem -0.5rem 0.5rem -0.5rem;
+}
+
+.inventory-list {
+    flex: 1;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding-right: 4px;
+    padding-bottom: 0;
+}
+
+.inventory-list > :last-child {
+    margin-bottom: 1rem;
+}
+
+.inventory-list::-webkit-scrollbar {
+    width: 16px;
+}
+
+.inventory-list::-webkit-scrollbar-track {
+    background: var(--win95-gray);
+    border-radius: 0;
+    border: 1px solid var(--win95-dark-gray);
+}
+
+.inventory-list::-webkit-scrollbar-thumb {
+    background: var(--win95-gray);
+    border-radius: 0;
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+}
+
+.inventory-list::-webkit-scrollbar-thumb:hover {
+    background: var(--win95-light-gray);
+}
+
+.inventory-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    background-color: var(--win95-white);
+    border-radius: 0;
+    border: 2px solid;
+    border-top-color: var(--win95-light-gray);
+    border-left-color: var(--win95-light-gray);
+    border-right-color: var(--win95-dark-gray);
+    border-bottom-color: var(--win95-dark-gray);
+    cursor: pointer;
+}
+
+.inventory-item:hover {
+    background-color: var(--win95-blue);
+}
+
+.inventory-item:hover .inventory-item-info .name,
+.inventory-item:hover .inventory-item-info .rarity {
+    color: var(--win95-white);
+}
+
+.inventory-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.inventory-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.inventory-item-info .name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--win95-black);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.inventory-item-info .rarity {
+    font-size: 0.65rem;
+    opacity: 0.75;
+}
+
+/* Apply rarity colors to inventory items */
+.inventory-item.rarity-common .inventory-item-info .rarity {
+    color: #6b7280;
+    font-weight: bold;
+}
+.inventory-item.rarity-uncommon .inventory-item-info .rarity {
+    color: #2563eb;
+    font-weight: bold;
+}
+.inventory-item.rarity-rare .inventory-item-info .rarity {
+    color: #7c3aed;
+    font-weight: bold;
+}
+.inventory-item.rarity-legendary .inventory-item-info .rarity {
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+.delete-inventory-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(239, 68, 68, 0.8);
+    color: white;
+    border: none;
+    border-radius: 0;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    opacity: 0;
+    z-index: 10;
+}
+
+.inventory-item:hover .delete-inventory-btn {
+    opacity: 1;
+}
+
+.delete-inventory-btn:hover {
+    background-color: rgba(239, 68, 68, 1);
+    transform: scale(1.1);
+}
+
+/* --- Modal Styling --- */
+.modal-bg {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    width: 20vw;
+    min-width: 300px;
+    max-width: 500px;
+    color: var(--win95-black);
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Windows 95 Title Bar */
+.win95-titlebar {
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%);
+    padding: 2px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 20px;
+}
+
+.win95-titlebar-text {
+    color: var(--win95-white);
+    font-size: 15px;
+    font-weight: bold;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.win95-close-btn {
+    width: 16px;
+    height: 14px;
+    padding: 0;
+    margin: 0;
+    background-color: var(--win95-gray);
+    border: 1px outset var(--win95-white);
+    color: var(--win95-black);
+    font-size: 12px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.win95-close-btn:hover {
+    background-color: var(--win95-light-gray);
+}
+
+.win95-close-btn:active {
+    border: 1px inset var(--win95-white);
+}
+
+.win95-window-content {
+    padding: 16px;
+    background-color: var(--win95-gray);
+}
+
+/* --- Available Items Panel --- */
+.available-items-panel {
+    width: 18vw;
+    min-width: 200px;
+    max-width: 280px;
+    height: 100%;
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-radius: 0;
+    padding: 0.5rem !important;
+    box-sizing: border-box;
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+}
+
+.available-items-panel h3 {
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%);
+    color: var(--win95-white);
+    padding: 2px 4px;
+    font-size: 15px;
+    font-weight: bold;
+    margin: -0.5rem -0.5rem 0.5rem -0.5rem;
+}
+
+.available-items-list {
+    flex: 1;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding-right: 4px;
+    padding-bottom: 0;
+}
+
+.available-items-list > :last-child {
+    margin-bottom: 1rem;
+}
+
+.available-items-list::-webkit-scrollbar {
+    width: 16px;
+}
+
+.available-items-list::-webkit-scrollbar-track {
+    background: var(--win95-gray);
+    border-radius: 0;
+    border: 1px solid var(--win95-dark-gray);
+}
+
+.available-items-list::-webkit-scrollbar-thumb {
+    background: var(--win95-gray);
+    border-radius: 0;
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+}
+
+.available-items-list::-webkit-scrollbar-thumb:hover {
+    background: var(--win95-light-gray);
+}
+
+.available-item-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    background-color: var(--win95-white);
+    border-radius: 0;
+    border: 2px solid;
+    border-top-color: var(--win95-light-gray);
+    border-left-color: var(--win95-light-gray);
+    border-right-color: var(--win95-dark-gray);
+    border-bottom-color: var(--win95-dark-gray);
+}
+
+.available-item-card:hover {
+    background-color: var(--win95-blue);
+}
+
+.available-item-card:hover .available-item-info .name,
+.available-item-card:hover .available-item-info .rarity {
+    color: var(--win95-white);
+}
+
+.available-item-card img {
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.available-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.available-item-info .name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--win95-black);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.available-item-info .rarity {
+    font-size: 0.65rem;
+    opacity: 0.75;
+}
+
+/* Apply rarity colors to available items */
+.available-item-card.rarity-common .available-item-info .rarity {
+    color: #6b7280;
+    font-weight: bold;
+}
+.available-item-card.rarity-uncommon .available-item-info .rarity {
+    color: #2563eb;
+    font-weight: bold;
+}
+.available-item-card.rarity-rare .available-item-info .rarity {
+    color: #7c3aed;
+    font-weight: bold;
+}
+.available-item-card.rarity-legendary .available-item-info .rarity {
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+/* --- Windows 95 Button Styles --- */
+button {
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    color: var(--win95-black);
+    border-radius: 0;
+    font-family: 'MS Sans Serif', 'Microsoft Sans Serif', sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: none;
+}
+
+button:hover:not(:disabled) {
+    background-color: var(--win95-light-gray);
+}
+
+button:active:not(:disabled) {
+    border: 2px inset var(--win95-white);
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray);
+}
+
+button:disabled {
+    color: var(--win95-dark-gray);
+    background-color: var(--win95-gray);
+    text-shadow: 1px 1px 0 var(--win95-white);
+}
+
+/* --- Windows 95 Title Bar Style --- */
+h1, h2, h3 {
+    font-family: 'MS Sans Serif', 'Microsoft Sans Serif', sans-serif;
+}
+
+/* --- Case Card Windows 95 Style --- */
+.case-card {
+    border: 2px outset var(--win95-white) !important;
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray) !important;
+    border-radius: 0 !important;
+    background-color: var(--win95-gray) !important;
+}
+
+.case-card:hover {
+    background-color: var(--win95-light-gray) !important;
+}
+
+.case-card.selected {
+    border: 2px inset var(--win95-dark-gray) !important;
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray) !important;
+    background-color: var(--win95-dark-gray) !important;
+}
+
+/* --- Roller Parent Container --- */
+.roller-parent-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* --- Case Description Box --- */
+.case-description-box {
+    margin-top: 12px;
+    padding: 8px;
+    background-color: var(--win95-white);
+    border: 2px inset var(--win95-white);
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray);
+    color: var(--win95-black);
+    font-size: 13px;
+    text-align: left;
+    height: 30%;
+    min-height: 30%;
+    max-height: 30%;
+    display: block;
+    overflow-y: auto;
+    flex-shrink: 0;
+}

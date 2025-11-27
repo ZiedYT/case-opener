@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Case Opener</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen p-8 bg-gray-900">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-red-400">Settings</h1>
+            <button onclick="goBack()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition">
+                ← Back to Game
+            </button>
+        </div>
+
+        <!-- Cases Management -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-white">Manage Cases</h2>
+                <button onclick="addNewCase()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition">
+                    + Add New Case
+                </button>
+            </div>
+
+            <div id="cases-container" class="space-y-4">
+                <!-- Cases will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Case Modal -->
+    <div id="case-modal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm z-50">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold text-blue-400 mb-4" id="case-modal-title">Add New Case</h3>
+            
+            <!-- Case Details -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-white mb-3">Case Details</h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-gray-300 text-sm mb-1">Case Name</label>
+                        <input type="text" id="case-name" placeholder="e.g., The Prime Case" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 text-sm mb-1">Image URL</label>
+                        <input type="text" id="case-image" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 text-sm mb-1">Description</label>
+                        <textarea id="case-description" placeholder="e.g., A premium case containing rare items..." rows="3" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items in Case -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-lg font-semibold text-white">Items in Case</h4>
+                    <button onclick="addNewItem()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition">
+                        + Add Item
+                    </button>
+                </div>
+                <div id="items-container" class="space-y-3">
+                    <!-- Items will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="flex gap-3">
+                <button onclick="saveCase()" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition">
+                    Save Case
+                </button>
+                <button onclick="closeCaseModal()" class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Item Modal -->
+    <div id="item-modal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm z-50">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4">
+            <h3 class="text-2xl font-bold text-blue-400 mb-4" id="item-modal-title">Add New Item</h3>
+            
+            <!-- Item Details -->
+            <div class="space-y-3 mb-6">
+                <div>
+                    <label class="block text-gray-300 text-sm mb-1">Item Name</label>
+                    <input type="text" id="item-name" placeholder="e.g., Legendary Sword" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm mb-1">Description</label>
+                    <input type="text" id="item-description" placeholder="e.g., A powerful weapon" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm mb-1">Image URL</label>
+                    <input type="text" id="item-image" placeholder="https://..." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm mb-1">Rarity</label>
+                    <select id="item-rarity" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border-2 border-gray-600 focus:border-blue-400 focus:outline-none">
+                        <option value="COMMON">Common</option>
+                        <option value="UNCOMMON">Uncommon</option>
+                        <option value="RARE">Rare</option>
+                        <option value="LEGENDARY">Legendary</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Modal Actions -->
+            <div class="flex gap-3">
+                <button onclick="saveItem()" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition">
+                    Save Item
+                </button>
+                <button onclick="closeItemModal()" class="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>
