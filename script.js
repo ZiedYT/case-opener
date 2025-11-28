@@ -572,6 +572,8 @@ async function handleLogin() {
  */
 function showLoginStatus(message, isSuccess) {
     const statusDiv = document.getElementById('login-status');
+    if (!statusDiv) return; // Element doesn't exist, skip
+    
     statusDiv.textContent = message;
     statusDiv.classList.remove('hidden', 'bg-green-900', 'text-green-300', 'bg-red-900', 'text-red-300', 'bg-blue-900', 'text-blue-300');
     
