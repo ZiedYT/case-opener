@@ -565,7 +565,6 @@ async function handleLogin() {
         }
     }
 }
-
 /**
  * Shows login status message
  * @param {string} message - Status message to display
