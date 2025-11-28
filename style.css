@@ -96,7 +96,7 @@ body {
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
     padding: 8px;
     background-color: transparent;
