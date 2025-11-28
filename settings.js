@@ -3,6 +3,7 @@
 const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'LEGENDARY'];
 
 let currentCases = {};
+let caseOrder = []; // Track the order of case IDs
 let currentEditingCaseId = null;
 let currentItems = [];
 
@@ -81,36 +82,58 @@ async function loadCases() {
         const response = await fetch(databaseURL);
         if (response.ok) {
             const data = await response.json();
-            currentCases = data || {};
+            if (data) {
+                // Support both array format (new) and object format (old)
+                if (Array.isArray(data)) {
+                    currentCases = {};
+                    caseOrder = []; // Reset and rebuild order
+                    const seenIds = new Set(); // Track IDs we've already added
+                    data.forEach(caseItem => {
+                        if (caseItem.id && !seenIds.has(caseItem.id)) {
+                            currentCases[caseItem.id] = caseItem.data;
+                            caseOrder.push(caseItem.id); // Track order (only once per ID)
+                            seenIds.add(caseItem.id);
+                        }
+                    });
+                } else {
+                    currentCases = data;
+                    caseOrder = Object.keys(data); // Use object keys as initial order
+                }
+            }
         } else {
             console.error('Failed to load cases from Firebase:', response.status);
-            // Fallback to localStorage
-            const saved = localStorage.getItem('customCases');
-            if (saved) {
-                currentCases = JSON.parse(saved);
-            }
         }
     } catch (error) {
         console.error('Error loading cases:', error);
-        // Fallback to localStorage
-        const saved = localStorage.getItem('customCases');
-        if (saved) {
-            currentCases = JSON.parse(saved);
-        }
     }
 }
 
 async function saveCasesToStorage() {
     const credentials = getFirebaseCredentials();
     if (!credentials) {
-        console.error('No Firebase credentials found');
-        // Fallback to localStorage
-        localStorage.setItem('customCases', JSON.stringify(currentCases));
+        console.error('No Firebase credentials found. Cannot save cases.');
         return;
     }
 
     const projectId = credentials.project_id;
     const databaseURL = `https://${projectId}-default-rtdb.firebaseio.com/cases.json`;
+
+    // Build the cases array from caseOrder and currentCases
+    const casesArray = [];
+    for (const caseId of caseOrder) {
+        const caseData = currentCases[caseId];
+        if (caseData) {
+            casesArray.push({
+                id: caseId,
+                data: caseData
+            });
+        }
+    }
+    
+    console.log('=== SAVING TO FIREBASE ===');
+    console.log('caseOrder:', caseOrder);
+    console.log('Cases to save:', casesArray.length);
+    console.log('Full payload:', JSON.stringify(casesArray, null, 2));
 
     try {
         const response = await fetch(databaseURL, {
@@ -118,22 +141,16 @@ async function saveCasesToStorage() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(currentCases)
+            body: JSON.stringify(casesArray)
         });
 
         if (response.ok) {
-            console.log('Cases saved to Firebase successfully');
-            // Also save to localStorage as backup
-            localStorage.setItem('customCases', JSON.stringify(currentCases));
+            console.log('✓ Cases saved to Firebase successfully');
         } else {
-            console.error('Failed to save cases to Firebase:', response.status);
-            // Fallback to localStorage
-            localStorage.setItem('customCases', JSON.stringify(currentCases));
+            console.error('✗ Failed to save cases to Firebase:', response.status);
         }
     } catch (error) {
-        console.error('Error saving cases:', error);
-        // Fallback to localStorage
-        localStorage.setItem('customCases', JSON.stringify(currentCases));
+        console.error('✗ Error saving cases:', error);
     }
 }
 
@@ -141,35 +158,175 @@ async function saveCasesToStorage() {
 
 function renderCases() {
     const container = document.getElementById('cases-container');
+    console.log('renderCases() called. Current caseOrder:', caseOrder);
     container.innerHTML = '';
 
-    if (Object.keys(currentCases).length === 0) {
-        container.innerHTML = '<p class="text-gray-400 italic">No cases created yet. Click "Add New Case" to get started!</p>';
+    if (caseOrder.length === 0) {
+        container.innerHTML = '<p class="settings-empty-msg">No cases created yet. Click "Add New Case" to get started!</p>';
         return;
     }
 
-    Object.entries(currentCases).forEach(([caseId, caseData]) => {
+    caseOrder.forEach((caseId, index) => {
+        const caseData = currentCases[caseId];
+        if (!caseData) return; // Skip if case data not found
+        
         const caseDiv = document.createElement('div');
-        caseDiv.className = 'bg-gray-700 rounded-lg p-4 flex items-center gap-4';
+        caseDiv.className = 'case-entry';
+        caseDiv.draggable = true;
+        caseDiv.dataset.caseId = caseId;
+        caseDiv.id = `case-${caseId}`;
+        
+        // Add drag event listeners
+        caseDiv.addEventListener('dragstart', handleDragStart);
+        caseDiv.addEventListener('dragover', handleDragOver);
+        caseDiv.addEventListener('drop', handleDrop);
+        caseDiv.addEventListener('dragend', handleDragEnd);
+        caseDiv.addEventListener('dragleave', handleDragLeave);
+        
         caseDiv.innerHTML = `
             <img src="${caseData.image || 'https://placehold.co/80x80/525252/ffffff?text=NO+IMG'}" 
                  alt="${caseData.name}" 
-                 class="w-20 h-20 rounded-lg object-cover">
-            <div class="flex-1">
-                <h3 class="text-lg font-semibold text-white">${caseData.name}</h3>
-                <p class="text-sm text-gray-400">Items: ${caseData.items.length}</p>
+                 class="case-entry-image">
+            <div class="case-entry-info">
+                <h3 class="case-entry-title">${caseData.name}</h3>
+                <p class="case-entry-item-count">Items: ${caseData.items.length}</p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="editCase('${caseId}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition">
-                    Edit
+            <div class="button-group-bottom-right">
+                ${index > 0 ? `<button class="win95-small-btn" onclick="moveCaseUp(event)" data-case-id="${caseId}" title="Move up">▲</button>` : ''}
+                ${index < caseOrder.length - 1 ? `<button class="win95-small-btn" onclick="moveCaseDown(event)" data-case-id="${caseId}" title="Move down">▼</button>` : ''}
+            </div>
+            <div class="button-group-top-right">
+                <button class="win95-small-btn" onclick="editCase(event)" data-case-id="${caseId}" title="Edit">
+                    <img src="https://femboy.beauty/11Kwk0" alt="Edit" class="edit-btn-icon">
                 </button>
-                <button onclick="deleteCase('${caseId}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded transition">
-                    Delete
+                <button class="delete-inventory-btn" onclick="deleteCase(event)" data-case-id="${caseId}" title="Delete">
+                    ✕
                 </button>
             </div>
         `;
         container.appendChild(caseDiv);
     });
+}
+
+// --- Drag and Drop Functions ---
+let draggedElement = null;
+let dragStarted = false;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    dragStarted = true;
+    this.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (this !== draggedElement && dragStarted) {
+        const allCases = document.querySelectorAll('[data-case-id]');
+        const draggedIndex = Array.from(allCases).indexOf(draggedElement);
+        const targetIndex = Array.from(allCases).indexOf(this);
+        
+        if (draggedIndex < targetIndex) {
+            this.parentNode.insertBefore(draggedElement, this.nextSibling);
+        } else {
+            this.parentNode.insertBefore(draggedElement, this);
+        }
+    }
+}
+
+function handleDragLeave(e) {
+    if (e.target === this) {
+        this.style.backgroundColor = '';
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragStarted = false;
+}
+
+function handleDragEnd(e) {
+    this.style.opacity = '1';
+    dragStarted = false;
+    
+    if (draggedElement) {
+        // Get the new order from the DOM
+        const container = document.getElementById('cases-container');
+        const caseDivs = container.querySelectorAll('[data-case-id]');
+        const newOrder = Array.from(caseDivs).map(div => div.dataset.caseId);
+        
+        // Deduplicate in case DOM has duplicates
+        const deduplicatedOrder = [...new Set(newOrder)];
+        
+        // Only update caseOrder if it changed
+        if (JSON.stringify(deduplicatedOrder) !== JSON.stringify(caseOrder)) {
+            caseOrder = deduplicatedOrder;
+            console.log('New order detected and SAVING:', caseOrder);
+            saveCasesOrder().then(() => {
+                renderCases(); // Re-render to update button visibility
+            });
+        }
+        draggedElement = null;
+    }
+}
+
+// --- Case Reordering Functions ---
+function moveCaseUp(event) {
+    const caseId = event.target.closest('button').dataset.caseId;
+    const index = caseOrder.indexOf(caseId);
+    
+    if (index > 0) {
+        // Swap in caseOrder array
+        [caseOrder[index], caseOrder[index - 1]] = [caseOrder[index - 1], caseOrder[index]];
+        renderCases();
+        saveCasesOrder();
+    }
+}
+
+function moveCaseDown(event) {
+    const caseId = event.target.closest('button').dataset.caseId;
+    const index = caseOrder.indexOf(caseId);
+    
+    if (index < caseOrder.length - 1) {
+        // Swap in caseOrder array
+        [caseOrder[index], caseOrder[index + 1]] = [caseOrder[index + 1], caseOrder[index]];
+        renderCases();
+        saveCasesOrder();
+    }
+}
+
+function reorderCases(newOrder) {
+    const newCases = {};
+    newOrder.forEach(caseId => {
+        newCases[caseId] = currentCases[caseId];
+    });
+    currentCases = newCases;
+    renderCases();
+}
+
+function saveCasesOrder() {
+    // Save the current caseOrder
+    const casesArray = caseOrder.map(caseId => ({
+        id: caseId,
+        data: currentCases[caseId]
+    }));
+    
+    console.log('saveCasesOrder() called with:', casesArray.length, 'cases');
+    
+    // Call async function and return the promise
+    return saveCasesToStorage().then(() => {
+        console.log('Cases order saved to Firebase');
+    }).catch(error => {
+        console.error('Error saving cases order:', error);
+    });
+}
+
+function manualSaveOrder() {
+    console.log('Manual save triggered. Current caseOrder:', caseOrder);
+    saveCasesOrder();
 }
 
 // --- Case Modal Functions ---
@@ -187,7 +344,8 @@ function addNewCase() {
     showCaseModal();
 }
 
-function editCase(caseId) {
+function editCase(event) {
+    const caseId = event.target.closest('button').dataset.caseId;
     currentEditingCaseId = caseId;
     const caseData = currentCases[caseId];
     
@@ -201,9 +359,15 @@ function editCase(caseId) {
     showCaseModal();
 }
 
-async function deleteCase(caseId) {
+async function deleteCase(event) {
+    const caseId = event.target.closest('button').dataset.caseId;
     if (confirm(`Are you sure you want to delete "${currentCases[caseId].name}"?`)) {
         delete currentCases[caseId];
+        // Remove from caseOrder
+        const index = caseOrder.indexOf(caseId);
+        if (index > -1) {
+            caseOrder.splice(index, 1);
+        }
         await saveCasesToStorage();
         renderCases();
     }
@@ -253,15 +417,26 @@ async function saveCase() {
     // If editing and name changed, delete the old case entry
     if (currentEditingCaseId && currentEditingCaseId !== caseId) {
         delete currentCases[currentEditingCaseId];
+        // Remove from caseOrder
+        const oldIndex = caseOrder.indexOf(currentEditingCaseId);
+        if (oldIndex > -1) {
+            caseOrder.splice(oldIndex, 1);
+        }
     }
 
     // Save case
+    const isNewCase = !currentCases[caseId];
     currentCases[caseId] = {
         name: caseName,
         image: caseImage,
         description: caseDescription,
         items: currentItems
     };
+    
+    // Add to caseOrder if new
+    if (isNewCase && !caseOrder.includes(caseId)) {
+        caseOrder.push(caseId);
+    }
 
     // Show saving indicator
     const saveBtn = event.target;
@@ -285,30 +460,28 @@ function renderItems() {
     container.innerHTML = '';
 
     if (currentItems.length === 0) {
-        container.innerHTML = '<p class="text-gray-400 italic text-sm">No items added yet. Click "Add Item" to add items to this case.</p>';
+        container.innerHTML = '<p class="settings-empty-msg-small">No items added yet. Click "Add Item" to add items to this case.</p>';
         return;
     }
 
     currentItems.forEach((item, index) => {
         const itemDiv = document.createElement('div');
-        itemDiv.className = 'bg-gray-900 rounded-lg p-3 border-2 border-gray-600';
+        itemDiv.className = 'item-entry';
         itemDiv.innerHTML = `
-            <div class="flex items-start gap-3">
+            <div class="item-entry-content">
                 <img src="${item.image || 'https://placehold.co/60x60/525252/ffffff?text=?'}" 
                      alt="${item.name}" 
-                     class="w-16 h-16 rounded object-cover flex-shrink-0">
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h5 class="text-white font-semibold">${item.name}</h5>
-                            <span class="text-xs px-2 py-0.5 rounded ${getRarityColor(item.rarity)}">${item.rarity}</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <button onclick="editItem(${index})" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">Edit</button>
-                            <button onclick="deleteItem(${index})" class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded">Delete</button>
-                        </div>
+                     class="item-entry-image">
+                <div class="item-entry-info">
+                    <div style="margin-bottom: 4px;">
+                        <h5 class="item-entry-title">${item.name}</h5>
+                        <span style="font-size: 10px; padding: 2px 4px; ${getRarityStyle(item.rarity)}">${item.rarity}</span>
                     </div>
-                    <p class="text-gray-400 text-sm">${item.description || 'No description'}</p>
+                    <p class="item-entry-description">${item.description || 'No description'}</p>
+                </div>
+                <div class="button-group-top-right">
+                    <button onclick="editItem(event)" class="win95-small-btn" data-item-index="${index}" title="Edit"><img src="https://femboy.beauty/11Kwk0" alt="Edit" class="edit-btn-icon"></button>
+                    <button class="delete-inventory-btn" onclick="deleteItem(event)" data-item-index="${index}" title="Delete">✕</button>
                 </div>
             </div>
         `;
@@ -316,14 +489,14 @@ function renderItems() {
     });
 }
 
-function getRarityColor(rarity) {
-    const colors = {
-        'COMMON': 'bg-gray-600 text-gray-200',
-        'UNCOMMON': 'bg-blue-600 text-blue-200',
-        'RARE': 'bg-purple-600 text-purple-200',
-        'LEGENDARY': 'bg-yellow-600 text-yellow-200'
+function getRarityStyle(rarity) {
+    const styles = {
+        'COMMON': 'background-color: #808080; color: white; border: 1px solid #404040;',
+        'UNCOMMON': 'background-color: #0000ff; color: white; border: 1px solid #000080;',
+        'RARE': 'background-color: #800080; color: white; border: 1px solid #400040;',
+        'LEGENDARY': 'background-color: #ffaa00; color: black; border: 1px solid #cc8800;'
     };
-    return colors[rarity] || 'bg-gray-600 text-gray-200';
+    return styles[rarity] || styles['COMMON'];
 }
 
 let currentEditingItemIndex = null;
@@ -340,7 +513,8 @@ function addNewItem() {
     showItemModal();
 }
 
-function editItem(index) {
+function editItem(event) {
+    const index = parseInt(event.target.closest('button').dataset.itemIndex);
     currentEditingItemIndex = index;
     const item = currentItems[index];
     
@@ -353,7 +527,8 @@ function editItem(index) {
     showItemModal();
 }
 
-function deleteItem(index) {
+function deleteItem(event) {
+    const index = parseInt(event.target.closest('button').dataset.itemIndex);
     if (confirm('Delete this item?')) {
         currentItems.splice(index, 1);
         renderItems();

@@ -1,9 +1,31 @@
+    <!-- Win95 Case Popup Window -->
+    <div id="case-popup-window" class="fixed inset-0 hidden items-center justify-center modal-bg transition-opacity duration-300 opacity-0 z-50" style="background:rgba(0,0,0,0.25);backdrop-filter:blur(2px);">
+        <div class="modal-content relative max-w-2xl w-full mx-4" style="background:var(--win95-gray);border:2px outset var(--win95-white);box-shadow:inset -1px -1px 0 var(--win95-dark-gray),inset 1px 1px 0 var(--win95-light-gray);">
+            <!-- Win95 Title Bar -->
+            <div class="win95-titlebar flex items-center justify-between px-2 py-1" style="background:linear-gradient(90deg,var(--win95-blue),var(--win95-light-blue));color:var(--win95-white);">
+                <span class="win95-titlebar-text font-bold" id="case-popup-title">Case Name</span>
+                <button onclick="closeCasePopupWindow()" class="win95-close-btn">×</button>
+            </div>
+            <!-- Window Content -->
+            <div class="win95-window-content p-4">
+                <div class="roller-window mx-auto mb-4" style="max-width:100%;">
+                    <div class="indicator"></div>
+                    <div id="popup-raffle-roller-container" class="raffle-roller-container"></div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-center items-center mb-3 gap-3">
+                    <button id="popup-open-case-btn" class="px-8 py-3 font-bold disabled:cursor-not-allowed" onclick="popupStartRoll()" disabled>Open Case</button>
+                    <div id="popup-rolled-result" class="text-xl font-mono text-center" style="color:rgb(25,179,81);"></div>
+                </div>
+                <div id="popup-case-description" class="case-description-box"></div>
+            </div>
+        </div>
+    </div>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Game Case Opener</title>
+    <title>Case Opener</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Custom CSS (Assumes style.css is in the same directory) -->
@@ -11,53 +33,20 @@
 </head>
 <body class="min-h-screen p-4 sm:p-8">
 
-    <!-- Login Button (Top Left) -->
-    <div class="fixed top-4 left-4 z-50 flex gap-2">
-        <button id="login-btn" onclick="showLoginModal()" class="px-4 py-2 text-white font-semibold">
-            Login
-        </button>
-        <button id="settings-btn" onclick="goToSettings()" class="hidden px-4 py-2 text-white font-semibold">
-            ⚙️ Settings
-        </button>
-    </div>
-
     <div class="main-layout">
-        <!-- Available Items List (Full Height Left Sidebar) -->
-        <div class="available-items-panel">
-            <h3 class="text-lg font-semibold text-white mb-3">Available Items</h3>
-            <div id="available-items-list" class="available-items-list space-y-2">
-                <p class="text-gray-500 text-sm italic">Select a case to view items</p>
-            </div>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="main-content-center">
-            <!-- Case Selection Area -->
-            <div id="case-selection-container" class="flex flex-wrap justify-center gap-3 mb-3 flex-shrink-0">
-                <!-- Cases will be dynamically loaded from Firebase -->
-                <p class="text-gray-400 italic text-sm">Loading cases...</p>
+        <!-- Left Section: Available Items and Desktop Icons -->
+        <div class="items-and-icons-container">
+            <!-- Available Items List -->
+            <div class="available-items-panel">
+                <h3 class="text-lg font-semibold text-white mb-3">Available Items</h3>
+                <div id="available-items-list" class="available-items-list space-y-2">
+                    <p class="text-gray-500 text-sm italic">Select a case to view items</p>
+                </div>
             </div>
 
-            <!-- Selected Case and Roller Area -->
-            <div class="p-3 bg-gray-900 flex-shrink-0 roller-parent-container">
-                <!-- Roller Mechanism -->
-                <div class="roller-window mx-auto">
-                    <div class="indicator"></div>
-                    <div id="raffle-roller-container" class="raffle-roller-container">
-                        <!-- Items will be generated here by script.js -->
-                    </div>
-                </div>
-
-                <!-- Controls and Result -->
-                <div class="flex flex-col sm:flex-row justify-center items-center mt-3 space-y-2 sm:space-y-0 sm:space-x-4">
-                    <button id="open-case-btn" 
-                            class="px-8 py-3 font-bold disabled:cursor-not-allowed"
-                            onclick="startRoll()" disabled>
-                        Open Case
-                    </button>
-                    <div id="rolled-result" class="text-xl font-mono text-center mt-2 sm:mt-0" style="color: rgb(25, 179, 81);"></div>
-                </div>
-                <div id="case-description" class="case-description-box"></div>
+            <!-- Desktop Icons Area (Vertical, to the right) -->
+            <div id="desktop-icons-area" class="desktop-icons-vertical">
+                <!-- Case icons will be rendered here by script.js -->
             </div>
         </div>
 
@@ -93,18 +82,34 @@
         <div class="modal-content relative transform transition-all duration-500 scale-95">
             <!-- Windows 95 Title Bar -->
             <div class="win95-titlebar">
-                <span class="win95-titlebar-text" style="font-size: 15px;">Login</span>
+                <span class="win95-titlebar-text" style="font-size: 15px;" id="login-modal-title">Login</span>
                 <button onclick="closeLoginModal()" class="win95-close-btn">×</button>
             </div>
             <!-- Window Content -->
             <div class="win95-window-content">
-                <p class="mb-4 text-sm" style="color: var(--win95-black);">Paste your Base64 encoded Firebase private key:</p>
-                <input type="password" id="firebase-token-input" placeholder="Base64 Encoded Private Key" class="w-full px-4 py-2 mb-4" style="background-color: var(--win95-white); color: var(--win95-black); border: 2px inset var(--win95-white); box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray);">
-                <div id="login-status" class="hidden mb-4 p-3 text-sm font-semibold"></div>
-                <div class="flex justify-center">
-                    <button onclick="handleLogin()" class="px-6 py-2">
-                        Submit
-                    </button>
+                <!-- Login Content (Not logged in) -->
+                <div id="login-content">
+                    <p class="mb-4 text-sm" style="color: var(--win95-black);">Paste your private key:</p>
+                    <input type="password" id="firebase-token-input" placeholder="Private Key" class="w-full px-4 py-2 mb-4" style="background-color: var(--win95-white); color: var(--win95-black); border: 2px inset var(--win95-white); box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray);">
+                    <div id="login-status" class="hidden mb-4 p-3 text-sm font-semibold"></div>
+                    <div class="flex justify-center">
+                        <button onclick="handleLogin()" class="px-6 py-2">
+                            Submit
+                        </button>
+                    </div>
+                </div>
+                <!-- Logged In Content -->
+                <div id="logged-in-content" class="hidden">
+                    <p class="mb-3 text-sm" style="color: var(--win95-black);">Logged in as:</p>
+                    <p class="mb-4 font-bold" style="color: var(--win95-black);"><span id="project-id-display"></span></p>
+                    <div class="flex gap-2 justify-center">
+                        <button onclick="window.open('settings.html', '_blank')" class="px-4 py-2" style="flex: 1;">
+                            Set Up Cases
+                        </button>
+                        <button onclick="handleLogout()" class="px-4 py-2" style="flex: 1;">
+                            Log Out
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -1,3 +1,37 @@
+/* --- Win95 Desktop Icon Styles --- */
+.win95-desktop-icon {
+    user-select: none;
+    outline: none;
+    margin-bottom: 12px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.win95-desktop-icon:focus, .win95-desktop-icon.selected {
+    box-shadow: 0 0 0 2px var(--win95-blue);
+}
+.win95-icon-bg {
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.win95-desktop-icon:hover .win95-icon-bg, .win95-desktop-icon.selected .win95-icon-bg {
+    border-color: var(--win95-blue) !important;
+    box-shadow: 0 0 0 2px var(--win95-blue);
+}
+.win95-icon-label {
+    color: var(--win95-white);
+    font-size: 14px;
+    margin-top: 8px;
+    text-align: center;
+    max-width: 90px;
+    word-wrap: break-word;
+    line-height: 1.3;
+    cursor: pointer;
+    font-weight: 500;
+}
+.win95-desktop-icon:hover .win95-icon-label, .win95-desktop-icon.selected .win95-icon-label {
+    text-decoration: underline;
+}
 /* --- CSS: Video Game Case Opener Styles --- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 
@@ -40,10 +74,37 @@ body {
 /* --- Main Layout --- */
 .main-layout {
     display: flex;
+    flex-direction: row;
     height: calc(100vh - 10rem);
     width: 100%;
     gap: 8px;
     overflow: hidden;
+    justify-content: space-between;
+}
+
+/* Container for available items list and desktop icons */
+.items-and-icons-container {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    gap: 8px;
+    overflow: hidden;
+}
+
+/* Desktop icons displayed in grid-like layout */
+.desktop-icons-vertical {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px;
+    background-color: transparent;
+    border-radius: 0;
+    flex-shrink: 0;
+    overflow: auto;
+    width: auto;
+    max-height: 100%;
 }
 
 .main-content-center {
@@ -90,7 +151,7 @@ body {
 .roller-window {
     width: 100%;
     max-width: 100%;
-    height: var(--item-height);
+    height: calc(var(--item-height) + 4px);
     overflow: hidden;
     position: relative;
     background: var(--win95-white);
@@ -152,8 +213,8 @@ body {
     text-align: center;
     background-color: var(--win95-gray);
     border-radius: 0;
-    border: 2px outset var(--win95-white);
-    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    border: 2px solid;
+    border-color: #3a4150;
     transition: all 0.3s ease;
     box-sizing: border-box;
 }
@@ -171,28 +232,32 @@ body {
     padding: 0 8px 8px 8px;
 }
 
+.item-name {
+    color: inherit;
+}
+
 /* Rarity Classes (Used for borders and text color on items) */
 .rarity-common {
-    border-color: #4b5563; /* Gray */
-    color: #9ca3af;
+    border-color: #3a4150; /* Darker Gray */
+    color: #6b7280;
 }
 .rarity-uncommon {
-    border-color: #3b82f6; /* Blue */
-    color: #60a5fa;
+    border-color: #1e40af; /* Darker Blue */
+    color: #1e40af;
 }
 .rarity-rare {
-    border-color: #8b5cf6; /* Violet */
-    color: #a78bfa;
+    border-color: #6d28d9; /* Darker Violet */
+    color: #6d28d9;
 }
 .rarity-legendary {
-    border-color: #f59e0b; /* Amber */
-    color: #fcd34d;
+    border-color: #b45309; /* Darker Amber */
+    color: #b45309;
 }
 
 .winning-item {
     /* Stronger highlight for the winner */
     border: 2px inset var(--win95-white) !important;
-    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray), 0 0 0 2px var(--win95-blue);
+        box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray);
     transform: scale(1.05);
     background-color: var(--win95-light-blue) !important;
 }
@@ -353,6 +418,18 @@ body {
     opacity: 1;
 }
 
+/* Always show delete button in settings pages and use relative positioning */
+#cases-container .delete-inventory-btn,
+#items-container .delete-inventory-btn {
+    opacity: 1;
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+}
+
 .delete-inventory-btn:hover {
     background-color: rgba(239, 68, 68, 1);
     transform: scale(1.1);
@@ -360,8 +437,11 @@ body {
 
 /* --- Modal Styling --- */
 .modal-bg {
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
+    background-color: transparent !important;
+    pointer-events: none;
+    /* Remove backdrop blur from modal background */
+    backdrop-filter: none !important;
+    filter: none !important;
     z-index: 1000;
 }
 
@@ -369,13 +449,25 @@ body {
     background-color: var(--win95-gray);
     border: 2px outset var(--win95-white);
     box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
-    width: 20vw;
+    /* Default modal-content style for popups */
+    width: 20vw !important;
     min-width: 300px;
-    max-width: 500px;
-    color: var(--win95-black);
+    max-width: 20vw !important;
+        color: var(--win95-black);
     padding: 0;
     overflow: hidden;
+    pointer-events: auto;
 }
+/* Case window specific size */
+#case-popup-window .modal-content {
+    width: 60vw !important;
+    min-width: 400px;
+    max-width: 60vw !important;
+}
+
+
+
+
 
 /* Windows 95 Title Bar */
 .win95-titlebar {
@@ -398,14 +490,14 @@ body {
 }
 
 .win95-close-btn {
-    width: 16px;
-    height: 14px;
+    width: 28px;
+    height: 28px;
     padding: 0;
     margin: 0;
     background-color: var(--win95-gray);
-    border: 1px outset var(--win95-white);
+    border: 2px outset var(--win95-white);
     color: var(--win95-black);
-    font-size: 12px;
+    font-size: 22px;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -429,12 +521,10 @@ body {
 
 /* --- Available Items Panel --- */
 .available-items-panel {
-    width: 18vw;
+    flex: 1;
     min-width: 200px;
     max-width: 280px;
     height: 100%;
-    position: sticky;
-    top: 0;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -598,16 +688,30 @@ h1, h2, h3 {
     box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray) !important;
     border-radius: 0 !important;
     background-color: var(--win95-gray) !important;
+    transition: box-shadow 0.2s, border-color 0.2s;
 }
 
+/* Keep background hover, but add blue name band */
 .case-card:hover {
     background-color: var(--win95-light-gray) !important;
 }
+.case-card:hover .case-name-overlay {
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%) !important;
+    color: var(--win95-white) !important;
+    border-top: 2px solid var(--win95-blue) !important;
+}
 
+/* Selected: blue name band */
 .case-card.selected {
     border: 2px inset var(--win95-dark-gray) !important;
     box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-light-gray) !important;
     background-color: var(--win95-dark-gray) !important;
+}
+.case-card.selected .case-name-overlay {
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%) !important;
+    color: var(--win95-white) !important;
+    border-top: 2px solid var(--win95-blue) !important;
+    box-shadow: 0 0 0 2px var(--win95-blue);
 }
 
 /* --- Roller Parent Container --- */
@@ -629,8 +733,429 @@ h1, h2, h3 {
     text-align: left;
     height: 30%;
     min-height: 30%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     max-height: 30%;
     display: block;
     overflow-y: auto;
     flex-shrink: 0;
+}
+
+/* --- Settings Page Styles --- */
+
+/* Case Entry Container */
+.case-entry {
+    position: relative;
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    border-radius: 0;
+}
+
+/* Case Image */
+.case-entry-image {
+    width: 64px;
+    height: 64px;
+    border: 2px inset var(--win95-dark-gray);
+    object-fit: cover;
+    cursor: grab;
+    flex-shrink: 0;
+}
+
+/* Case Info Container */
+.case-entry-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.case-entry-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--win95-black);
+    margin: 0 0 4px 0;
+}
+
+.case-entry-item-count {
+    font-size: 12px;
+    color: var(--win95-dark-gray);
+    margin: 0;
+}
+
+/* Button Groups */
+.button-group-top-right {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+}
+
+.button-group-bottom-right {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+}
+
+/* Win95 Small Button (20x20) */
+.win95-small-btn {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background-color: var(--win95-gray);
+    color: var(--win95-black);
+    border: 1px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    cursor: pointer;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.win95-small-btn:active {
+    border-style: inset;
+}
+
+/* Edit Button Icon */
+.edit-btn-icon {
+    width: 14px;
+    height: 14px;
+}
+
+/* Item Entry Container */
+.item-entry {
+    position: relative;
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    padding: 6px;
+    margin-bottom: 6px;
+    border-radius: 0;
+}
+
+/* Item Content Wrapper */
+.item-entry-content {
+    display: flex;
+    align-items: start;
+    gap: 8px;
+}
+
+/* Item Image */
+.item-entry-image {
+    width: 48px;
+    height: 48px;
+    border: 2px inset var(--win95-dark-gray);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* Item Info Container */
+.item-entry-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-entry-title {
+    color: var(--win95-black);
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0 0 2px 0;
+}
+
+.item-entry-description {
+    color: var(--win95-dark-gray);
+    font-size: 11px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Empty Message */
+.settings-empty-msg {
+    color: var(--win95-dark-gray);
+    font-style: italic;
+    padding: 12px;
+}
+
+.settings-empty-msg-small {
+    color: var(--win95-dark-gray);
+    font-style: italic;
+    font-size: 11px;
+    padding: 4px;
+}
+
+/* Win95 Scrollbar for Settings Containers */
+#cases-container::-webkit-scrollbar,
+#items-container::-webkit-scrollbar {
+    width: 16px;
+}
+
+#cases-container::-webkit-scrollbar-track,
+#items-container::-webkit-scrollbar-track {
+    background: var(--win95-white);
+    border-radius: 0;
+}
+
+#cases-container::-webkit-scrollbar-thumb,
+#items-container::-webkit-scrollbar-thumb {
+    background: var(--win95-gray);
+    border-radius: 0;
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+}
+
+#cases-container::-webkit-scrollbar-thumb:hover,
+#items-container::-webkit-scrollbar-thumb:hover {
+    background: var(--win95-light-gray);
+}
+
+/* --- Settings Page Body --- */
+body.settings-page {
+    background-color: var(--win95-teal);
+    font-family: 'MS Sans Serif', 'Microsoft Sans Serif', sans-serif;
+}
+
+/* --- Settings Page Header --- */
+.settings-header {
+    display: none;
+}
+
+/* --- Settings Page Container --- */
+.settings-container {
+    background-color: var(--win95-gray);
+    padding: 0;
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    border-radius: 0;
+    width: 60vw;
+    margin: 0 auto;
+}
+
+/* --- Cases Management Section --- */
+.cases-management-header {
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%);
+    padding: 4px 8px;
+    border-radius: 0;
+    border-bottom: 2px outset var(--win95-white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.cases-management-header h2 {
+    color: var(--win95-white);
+    margin: 0;
+    flex: 1;
+}
+
+.cases-header-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.cases-header-buttons button {
+    background-color: var(--win95-gray);
+    color: var(--win95-black);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    border-radius: 0;
+    cursor: pointer;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.cases-header-buttons button:active {
+    border-style: inset;
+}
+
+.close-button {
+    min-width: 28px;
+    height: 28px;
+    padding: 2px 6px !important;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cases-container-inner {
+    background-color: var(--win95-white);
+    padding: 8px;
+    margin: 8px;
+    border: 2px inset var(--win95-dark-gray);
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-white);
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* --- Modal Styles --- */
+.settings-modal {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.settings-modal-content {
+    background-color: var(--win95-gray);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    width: 80vw;
+    max-width: 600px;
+}
+
+.settings-modal-header {
+    background: linear-gradient(90deg, var(--win95-blue) 0%, var(--win95-light-blue) 100%);
+    padding: 4px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.settings-modal-header h3 {
+    color: var(--win95-white);
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.settings-modal-close-btn {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background-color: var(--win95-gray);
+    color: var(--win95-black);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 0;
+    line-height: 1;
+}
+
+.settings-modal-close-btn:active {
+    border-style: inset;
+}
+
+.settings-modal-body {
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.settings-fieldset {
+    border: 2px groove var(--win95-white);
+    padding: 8px;
+    margin-bottom: 12px;
+}
+
+.settings-fieldset legend {
+    color: var(--win95-black);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 0 4px;
+}
+
+.settings-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-form-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.settings-form-item label {
+    display: block;
+    color: var(--win95-black);
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.settings-form-item input,
+.settings-form-item textarea,
+.settings-form-item select {
+    width: 100%;
+    padding: 4px;
+    background-color: var(--win95-white);
+    color: var(--win95-black);
+    border: 2px inset var(--win95-dark-gray);
+    box-shadow: inset 1px 1px 0 var(--win95-dark-gray), inset -1px -1px 0 var(--win95-white);
+    border-radius: 0;
+    font-size: 12px;
+    font-family: inherit;
+}
+
+.settings-form-item textarea {
+    resize: vertical;
+}
+
+.settings-modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.settings-modal-actions button {
+    padding: 6px 24px;
+    background-color: var(--win95-gray);
+    color: var(--win95-black);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.settings-modal-actions button:active {
+    border-style: inset;
+}
+
+.items-buttons-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.items-buttons-group button {
+    padding: 4px 12px;
+    background-color: var(--win95-gray);
+    color: var(--win95-black);
+    border: 2px outset var(--win95-white);
+    box-shadow: inset -1px -1px 0 var(--win95-dark-gray), inset 1px 1px 0 var(--win95-light-gray);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.items-buttons-group button:active {
+    border-style: inset;
+}
+
+.items-container-modal {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: var(--win95-white);
+    border: 2px inset var(--win95-dark-gray);
+    padding: 4px;
 }

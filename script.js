@@ -1,3 +1,101 @@
+// --- Win95 Popup Window Logic ---
+let currentPopupCaseId = null;
+
+function openCaseWindow(caseId) {
+    currentPopupCaseId = caseId;
+    const caseData = CASES[caseId];
+    if (!caseData) return;
+
+    // Set title
+    document.getElementById('case-popup-title').textContent = caseData.name;
+    // Set description (preserve newlines)
+    const descElement = document.getElementById('popup-case-description');
+    descElement.textContent = caseData.description || '';
+    descElement.style.whiteSpace = 'pre-wrap';
+
+    // Enable open button
+    const openBtn = document.getElementById('popup-open-case-btn');
+    openBtn.disabled = false;
+    openBtn.textContent = 'Open Case';
+
+    // Clear previous result
+    document.getElementById('popup-rolled-result').textContent = '';
+
+    // Generate roller
+    const rollerContainer = document.getElementById('popup-raffle-roller-container');
+    rollerContainer.innerHTML = '';
+    const caseItems = caseData.items || caseData.games || [];
+    const winningGame = selectWinningItem(caseItems);
+    generateRoller(caseItems,winningGame);
+    // Restore available items listing in popup
+    updateAvailableItemsList(caseItems);
+
+    // Mark selected icon visually
+    document.querySelectorAll('.win95-desktop-icon').forEach(icon => icon.classList.remove('selected'));
+    const selectedIcon = document.getElementById(`case-icon-${caseId}`);
+    if (selectedIcon) selectedIcon.classList.add('selected');
+    // Show popup with fade-in transition
+    const caseWindow = document.getElementById('case-popup-window');
+    caseWindow.style.display = 'flex';
+    setTimeout(() => {
+        caseWindow.classList.remove('opacity-0');
+    }, 10);
+}
+
+function closeCasePopupWindow() {
+    const caseWindow = document.getElementById('case-popup-window');
+    caseWindow.classList.add('opacity-0');
+    setTimeout(() => {
+        caseWindow.style.display = 'none';
+        currentPopupCaseId = null;
+        document.querySelectorAll('.win95-desktop-icon').forEach(icon => icon.classList.remove('selected'));
+    }, 300);
+}
+
+
+
+// Popup roll logic
+function startRoll() {
+    if (!currentPopupCaseId) return;
+    const openBtn = document.getElementById('popup-open-case-btn');
+    openBtn.disabled = true;
+    openBtn.textContent = 'Rolling...';
+    document.getElementById('popup-rolled-result').textContent = 'Rolling...';
+    const caseData = CASES[currentPopupCaseId];
+    const caseItems = caseData.items || caseData.games || [];
+    const winningGame = selectWinningItem(caseItems);
+    generateRoller(caseItems, winningGame);
+    const rollerContainer = document.getElementById('popup-raffle-roller-container');
+    const containerWidth = rollerContainer.parentElement.clientWidth;
+    const targetCenterOffset = (WIN_SLOT_INDEX * ITEM_FULL_WIDTH) + (ITEM_FULL_WIDTH / 2);
+    const RANDOM_WIGGLE = randomInt(-ITEM_FULL_WIDTH/4, ITEM_FULL_WIDTH/4) ;
+    const FINAL_TRANSLATION_PX = targetCenterOffset - (containerWidth / 2) + RANDOM_WIGGLE;
+    void rollerContainer.offsetHeight;
+    setTimeout(() => {
+        rollerContainer.style.transition = 'transform 6300ms cubic-bezier(0.23, 1, 0.32, 1)';
+        rollerContainer.style.transform = `translateX(-${FINAL_TRANSLATION_PX}px)`;
+        playRollSound();
+    }, 50);
+    setTimeout(() => {
+        document.getElementById('popup-rolled-result').textContent = `You unboxed: ${winningGame.name}!`;
+        const winCard = document.getElementById('CardNumber'+WIN_SLOT_INDEX);
+        if(winCard) {
+            winCard.classList.add('winning-item');
+        }
+
+        openBtn.disabled = false;
+        openBtn.textContent = 'Open Again';
+        inventory.push(winningGame);
+        renderInventory();
+        saveInventoryToFirebase();
+        showPlayModal(winningGame);
+
+    }, 6300);
+}
+
+window.openCaseWindow = openCaseWindow;
+window.closeCasePopupWindow = closeCasePopupWindow;
+window.popupStartRoll = startRoll;
 // --- Game Data and Logic ---
 
 // Game Rarity Structure
@@ -8,38 +106,18 @@ const RARITIES = {
     LEGENDARY: { name: "Legendary", weight: 50, color: "rarity-legendary" } // 5%
 };
 const TOTAL_WEIGHT = Object.values(RARITIES).reduce((sum, r) => sum + r.weight, 0);
-const WIN_SLOT_INDEX = 155;
+const WIN_SLOT_INDEX = 167;
 const ITEM_FULL_WIDTH = 200;
-
-// Video Game Database (using placeholder images and names)
-const ALL_GAMES = [
-    // Commons (45% total chance)
-    { id: 1, name: "Stardew Farm", rarity: RARITIES.COMMON, image: "https://placehold.co/80x80/4b5563/ffffff?text=C1", description: "A simple, relaxing farming simulator." },
-    { id: 2, name: "Pixel Runner", rarity: RARITIES.COMMON, image: "https://placehold.co/80x80/4b5563/ffffff?text=C2", description: "An endless runner game with retro graphics." },
-    { id: 3, name: "Block Tower Defense", rarity: RARITIES.COMMON, image: "https://placehold.co/80x80/4b5563/ffffff?text=C3", description: "Protect your base from blocky invaders." },
-    // Uncommons (35% total chance)
-    { id: 4, name: "Galactic Drifter", rarity: RARITIES.UNCOMMON, image: "https://placehold.co/80x80/3b82f6/ffffff?text=U1", description: "Space exploration with trading and combat." },
-    { id: 5, name: "Medieval Craft", rarity: RARITIES.UNCOMMON, image: "https://placehold.co/80x80/3b82f6/ffffff?text=U2", description: "Build and manage a medieval settlement." },
-    // Rares (15% total chance)
-    { id: 6, name: "Cyberpunk Shadow", rarity: RARITIES.RARE, image: "https://placehold.co/80x80/8b5cf6/ffffff?text=R1", description: "An action RPG set in a neon-drenched future." },
-    { id: 7, name: "Zombie Survival 4", rarity: RARITIES.RARE, image: "https://placehold.co/80x80/8b5cf6/ffffff?text=R2", description: "Third-person shooter in a post-apocalyptic world." },
-    // Legendaries (5% total chance)
-    { id: 8, name: "Elden Scroll VI", rarity: RARITIES.LEGENDARY, image: "https://placehold.co/80x80/f59e0b/ffffff?text=L1", description: "The highly anticipated open-world fantasy RPG." },
-];
 
 // Case Definitions (will be populated from Firebase)
 const CASES = {};
+let caseOrder = []; // Track the order of case IDs from Firebase
 
 // DOM Elements
-const rollerContainer = document.getElementById('raffle-roller-container');
-const openCaseBtn = document.getElementById('open-case-btn');
-const rolledResultDisplay = document.getElementById('rolled-result');
 const inventoryContainer = document.getElementById('inventory');
 const emptyInventoryMsg = document.getElementById('empty-inventory-msg');
 
 // State
-let currentCaseId = null;
-let isRolling = false;
 let inventory = []; // Stores unboxed game objects
 let rollSound = null; // Audio object for roll sound
 
@@ -79,72 +157,25 @@ function selectItemByRarity(pool) {
 /**
  * Selects a random game from a given pool based on rarity weights.
  * This is the crucial function for determining the winning game based on odds.
- * @param {Array<number>|Array<Object>} gameIds - Array of ALL_GAMES IDs or item objects for custom cases
+ * @param {Array<number>|Array<Object>} itemsIds - Array of item objects for custom cases
  * @returns {Object} The winning game object.
  */
-function selectWinningGame(gameIds) {
+function selectWinningItem(itemsIds) {
     // Check if this is a custom case with item objects
-    if (gameIds.length > 0 && typeof gameIds[0] === 'object' && gameIds[0].name) {
+    if (itemsIds.length > 0 && typeof itemsIds[0] === 'object' && itemsIds[0].name) {
         // Custom case: items are objects with name, rarity, etc.
         // Convert rarity strings to RARITIES objects
-        const pool = gameIds.map(item => ({
+        const pool = itemsIds.map(item => ({
             ...item,
             rarity: RARITIES[item.rarity] || RARITIES.COMMON
         }));
-        return selectItemByRarity(pool);
-    } else {
-        // Default case: gameIds are numbers referencing ALL_GAMES
-        const pool = gameIds.map(id => ALL_GAMES.find(g => g.id === id)).filter(g => g);
         return selectItemByRarity(pool);
     }
 }
 
 // --- UI / Game Flow Functions ---
 
-/**
- * Updates the UI to show which case is selected.
- */
-window.selectCase = function(caseId) {
-    if (isRolling) return;
-    currentCaseId = caseId;
-    const selectedCase = CASES[caseId];
-    
-    if (!selectedCase) {
-        console.error('Case not found:', caseId);
-        return;
-    }
 
-    // Get items - could be 'games' array (default) or 'items' array (custom)
-    const caseItems = selectedCase.items || selectedCase.games || [];
-
-    // Update UI text
-    openCaseBtn.textContent = 'Open Case';
-    openCaseBtn.disabled = false;
-    
-    // Update case description with name and description
-    const descriptionDisplay = document.getElementById('case-description');
-    if (descriptionDisplay) {
-        const caseName = `<div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">${selectedCase.name}</div>`;
-        const caseDesc = selectedCase.description ? `<div style="text-align: left;">${selectedCase.description}</div>` : '';
-        descriptionDisplay.innerHTML = caseName + caseDesc;
-    }
-
-    // Update card highlighting
-    document.querySelectorAll('.case-card').forEach(card => {
-        card.classList.remove('selected');
-        if (card.dataset.caseId === caseId) {
-            card.classList.add('selected');
-        }
-    });
-
-    // Clear roller and generate initial filler
-    rollerContainer.innerHTML = '';
-    rolledResultDisplay.textContent = '';
-    generateRoller(caseItems);
-    
-    // Update available items list
-    updateAvailableItemsList(caseItems);
-}
 
 /**
  * Updates the available items list panel
@@ -171,25 +202,46 @@ function updateAvailableItemsList(items) {
             }
         });
         availableGames = uniqueItems;
-    } else {
-        // Default case: get from ALL_GAMES
-        const uniqueGameIds = [...new Set(items)];
-        availableGames = uniqueGameIds
-            .map(id => ALL_GAMES.find(g => g.id === id))
-            .filter(g => g);
     }
     
     // Sort by rarity weight (legendary first)
     availableGames.sort((a, b) => a.rarity.weight - b.rarity.weight);
     
+    // Count items by rarity to calculate individual odds
+    const rarityItemCounts = {};
+    availableGames.forEach(game => {
+        const rarityKey = game.rarity.name;
+        rarityItemCounts[rarityKey] = (rarityItemCounts[rarityKey] || 0) + 1;
+    });
+    
+    // Calculate total pool weight (sum of all item weights)
+    let totalPoolWeight = 0;
+    availableGames.forEach(game => {
+        const itemsWithRarity = rarityItemCounts[game.rarity.name];
+        const weightPerItem = game.rarity.weight / itemsWithRarity;
+        totalPoolWeight += weightPerItem;
+    });
+    
     availableGames.forEach(game => {
         const itemCard = document.createElement('div');
         itemCard.className = `available-item-card ${game.rarity.color}`;
+        itemCard.onclick = () => showPlayModal(game);
+        itemCard.style.cursor = 'pointer';
+        
+        // Calculate the actual odds for this specific item
+        const itemsWithRarity = rarityItemCounts[game.rarity.name];
+        const weightPerItem = game.rarity.weight / itemsWithRarity;
+        const itemPercentage = (weightPerItem / totalPoolWeight) * 100;
+        // Calculate 1 in x based on weight: if item has weight 225 out of 1000, then 1000/225 = 1 in 4.44
+        const oddsFraction = totalPoolWeight / weightPerItem;
+        const oddsRounded = Math.ceil(oddsFraction * 2) / 2; // Round up to nearest 0.5
+        const rarityText = `${game.rarity.name}: 1 in ${oddsRounded} (${itemPercentage.toFixed(1)}%)`;
+        
         itemCard.innerHTML = `
             <img src="${game.image}" alt="${game.name}">
             <div class="available-item-info">
                 <div class="name">${game.name}</div>
-                <div class="rarity">${game.rarity.name}</div>
+                <div class="rarity">${rarityText}</div>
             </div>
         `;
         listContainer.appendChild(itemCard);
@@ -201,7 +253,14 @@ function updateAvailableItemsList(items) {
  * @param {Array<number>|Array<Object>} items - The pool of available game IDs or item objects
  * @param {Object} [winningGame=null] - The game that will be placed at the winning slot
  */
-function generateRoller(items, winningGame = null) {
+function generateRoller(items, winningGame) {
+    const rollerContainer = document.getElementById('popup-raffle-roller-container');
+    
+    if (!rollerContainer) {
+        console.error('Popup roller container not found!');
+        return;
+    }
+    
     rollerContainer.innerHTML = '';
     
     // Convert items to game objects
@@ -212,9 +271,6 @@ function generateRoller(items, winningGame = null) {
             ...item,
             rarity: RARITIES[item.rarity] || RARITIES.COMMON
         }));
-    } else {
-        // Default case: items are IDs
-        gamePool = items.map(id => ALL_GAMES.find(g => g.id === id)).filter(g => g);
     }
     
     const ITEMS_TO_GENERATE = WIN_SLOT_INDEX + 20;
@@ -228,6 +284,8 @@ function generateRoller(items, winningGame = null) {
         // Place the winning item at the predetermined slot
         if (i === WIN_SLOT_INDEX && winningGame) {
             item = winningGame;
+            console.log("Placing winner at index:", WIN_SLOT_INDEX);
+            console.log("Winner item:", winningGame);
         } else {
             // Pick a random filler item based on rarity weights
             item = selectItemByRarity(gamePool);
@@ -237,11 +295,10 @@ function generateRoller(items, winningGame = null) {
         itemDiv.id = `CardNumber${i}`;
         itemDiv.className = `item shadow-lg ${item.rarity.color}`;
         
-        // Add the image and name
+        // Add the image and name (rarity color applied to name via CSS class)
         itemDiv.innerHTML = `
             <img src="${item.image}" alt="${item.name}" class="item-image">
-            <span class="text-xs font-semibold mt-1 leading-none text-white">${item.name}</span>
-            <span class="text-xs font-light opacity-75 leading-none">${item.rarity.name}</span>
+            <span class="item-name text-xs font-semibold mt-1 leading-none">${item.name}</span>
         `;
 
         rollerContainer.appendChild(itemDiv);
@@ -252,79 +309,7 @@ function generateRoller(items, winningGame = null) {
     rollerContainer.style.transform = 'translateX(0px)'; 
 }
 
-/**
- * Initiates the case opening roll animation.
- */
-window.startRoll = function() {
-    if (isRolling || !currentCaseId) return;
 
-    isRolling = true;
-    openCaseBtn.disabled = true;
-    rolledResultDisplay.textContent = 'Rolling...';
-
-    const caseData = CASES[currentCaseId];
-    const caseItems = caseData.items || caseData.games || [];
-    const winningGame = selectWinningGame(caseItems);
-
-    // Generate the roller content with the winning item
-    generateRoller(caseItems, winningGame);
-
-    // Calculate the final translation
-    const containerWidth = rollerContainer.parentElement.clientWidth;
-    
-    // Calculate how far to move to center the winning item (index 77)
-    const targetCenterOffset = (WIN_SLOT_INDEX * ITEM_FULL_WIDTH) + (ITEM_FULL_WIDTH / 2);
-    
-    // Add a random wiggle (50px range) so it doesn't land exactly the same spot every time
-    const RANDOM_WIGGLE = randomInt(-25, 25); 
-    
-    // Calculate the full translation required (negative because we're moving left)
-    const FINAL_TRANSLATION_PX = targetCenterOffset - (containerWidth / 2) + RANDOM_WIGGLE;
-
-    // Force a reflow to ensure the reset position is applied
-    void rollerContainer.offsetHeight;
-    
-    // Use setTimeout to give browser time to render initial position
-    setTimeout(() => {
-        // Apply the transition and start the animation
-        rollerContainer.style.transition = "transform 6.3s cubic-bezier(.08,.6,0,1)"; 
-        rollerContainer.style.transform = `translateX(-${FINAL_TRANSLATION_PX}px)`;
-        
-        // Play roll sound
-        playRollSound();
-    }, 50);
-
-
-    // 4. Handle result after animation finishes
-    // The duration is now exactly the CSS transition duration (6300ms)
-    setTimeout(() => {
-        isRolling = false;
-        openCaseBtn.disabled = false;
-        
-        // Remove transition style after animation to prevent issues on selection/reset
-        rollerContainer.style.transition = 'none';
-
-        // Highlight the winning item
-        const winCard = document.getElementById('CardNumber77');
-        if(winCard) {
-            winCard.classList.add('winning-item');
-        }
-
-        // Update results
-        rolledResultDisplay.textContent = `Unboxed: ${winningGame.name}`;
-        
-        // Add to Inventory and update UI
-        inventory.push(winningGame);
-        renderInventory();
-        
-        // Save inventory to Firebase
-        saveInventoryToFirebase();
-        
-        // Show the play modal directly
-        showPlayModal(winningGame);
-
-    }, 6300); // Set timeout exactly to transition duration (6300ms)
-}
 
 /**
  * Renders the current user inventory.
@@ -394,14 +379,20 @@ function showPlayModal(game) {
     // Update the title bar with the game name
     modalTitle.textContent = game.name;
     
+    // Trim description to remove leading/trailing whitespace but preserve internal newlines
+    const description = (game.description || 'No description available').trim();
+    
     details.innerHTML = `
         <div class="flex flex-col items-center">
             <img src="${game.image}" alt="${game.name}" class="w-24 h-24 mb-4 border-2 ${game.rarity.color}">
-            <div class="w-full min-h-24 flex items-center justify-center text-sm p-4" style="background-color: var(--win95-white); border: 2px inset var(--win95-dark-gray);">
-                ${game.description || 'No description available'}
+            <div id="description-box" class="w-full min-h-24 flex items-center justify-center text-sm p-4" style="background-color: var(--win95-white); border: 2px inset var(--win95-dark-gray); white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">
             </div>
         </div>
     `;
+    
+    // Set description using textContent to preserve newlines without HTML interpretation
+    document.getElementById('description-box').textContent = description;
+    
     // Show with transition
     modal.style.display = 'flex';
     setTimeout(() => {
@@ -449,12 +440,30 @@ function deleteCookie(name) {
 
 function showLoginModal() {
     const modal = document.getElementById('login-modal');
-    const input = document.getElementById('firebase-token-input');
-    const statusDiv = document.getElementById('login-status');
+    const token = getCookie('firebaseToken');
+    const projectId = getCookie('firebaseProjectId');
+    const loginContent = document.getElementById('login-content');
+    const loggedInContent = document.getElementById('logged-in-content');
+    const modalTitle = document.getElementById('login-modal-title');
     
-    // Clear previous input and status
-    input.value = '';
-    statusDiv.classList.add('hidden');
+    if (token && projectId) {
+        // User is logged in
+        loginContent.classList.add('hidden');
+        loggedInContent.classList.remove('hidden');
+        modalTitle.textContent = 'Settings';
+        document.getElementById('project-id-display').textContent = projectId;
+    } else {
+        // User is not logged in
+        loginContent.classList.remove('hidden');
+        loggedInContent.classList.add('hidden');
+        modalTitle.textContent = 'Login';
+        const input = document.getElementById('firebase-token-input');
+        const statusDiv = document.getElementById('login-status');
+        input.value = '';
+        statusDiv.classList.add('hidden');
+        // Focus input after showing
+        setTimeout(() => input.focus(), 100);
+    }
     
     // Show with transition
     modal.style.display = 'flex';
@@ -463,9 +472,6 @@ function showLoginModal() {
         modal.querySelector('.modal-content').classList.remove('scale-95');
         modal.querySelector('.modal-content').classList.add('scale-100');
     }, 10);
-    
-    // Focus input
-    setTimeout(() => input.focus(), 100);
 }
 
 function closeLoginModal() {
@@ -475,6 +481,19 @@ function closeLoginModal() {
     modal.querySelector('.modal-content').classList.remove('scale-100');
     modal.querySelector('.modal-content').classList.add('scale-95');
     setTimeout(() => modal.style.display = 'none', 300);
+}
+
+function handleLogout() {
+    // Clear cookies
+    setCookie('firebaseToken', '', -1);
+    setCookie('firebaseProjectId', '', -1);
+    
+    // Clear cases
+    Object.keys(CASES).forEach(key => delete CASES[key]);
+    
+    // Re-render
+    renderCaseCards();
+    closeLoginModal();
 }
 
 async function handleLogin() {
@@ -511,18 +530,27 @@ async function handleLogin() {
             setCookie('firebaseToken', base64Token, 30);
             setCookie('firebaseProjectId', projectId, 30);
             
-            // Update login button to show logged in state
-            const loginBtn = document.getElementById('login-btn');
-            loginBtn.textContent = 'Logged In';
-            loginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            loginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-            
             showLoginStatus('✓ Credentials saved successfully!', true);
             
-            // Close modal after 1.5 seconds
-            setTimeout(() => {
-                closeLoginModal();
-            }, 1500);
+            // Load cases from Firebase
+            await loadCustomCasesFromFirebase();
+            
+            // Load inventory from Firebase
+            await loadInventoryFromFirebase();
+            
+            // Render inventory and cases
+            renderInventory();
+            renderCaseCards();
+            
+            // Update the modal to show logged in state
+            const loginContent = document.getElementById('login-content');
+            const loggedInContent = document.getElementById('logged-in-content');
+            const modalTitle = document.getElementById('login-modal-title');
+            loginContent.classList.add('hidden');
+            loggedInContent.classList.remove('hidden');
+            modalTitle.textContent = 'Settings';
+            document.getElementById('project-id-display').textContent = projectId;
+
         } else {
             showLoginStatus('Invalid project ID in credentials.', false);
         }
@@ -560,32 +588,10 @@ function showLoginStatus(message, isSuccess) {
 function checkLoginStatus() {
     const token = getCookie('firebaseToken');
     const projectId = getCookie('firebaseProjectId');
-    const loginBtn = document.getElementById('login-btn');
-    
     // Debug: Print localStorage values to console
     console.log('Firebase Token (localStorage):', token);
     console.log('Firebase Project ID (localStorage):', projectId);
     console.log('All localStorage:', { ...localStorage });
-    
-    const settingsBtn = document.getElementById('settings-btn');
-    
-    if (token && projectId) {
-        // User is logged in
-        loginBtn.textContent = `Logged In (${projectId})`;
-        loginBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-        loginBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-        
-        // Show settings button
-        settingsBtn.classList.remove('hidden');
-    } else {
-        // User is not logged in
-        loginBtn.textContent = 'Login';
-        loginBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-        loginBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        
-        // Hide settings button
-        settingsBtn.classList.add('hidden');
-    }
 }
 
 /**
@@ -616,6 +622,7 @@ function goToSettings() {
 window.showLoginModal = showLoginModal;
 window.closeLoginModal = closeLoginModal;
 window.handleLogin = handleLogin;
+window.handleLogout = handleLogout;
 window.goToSettings = goToSettings;
 
 // --- Load Custom Cases from Firebase ---
@@ -640,12 +647,29 @@ async function loadCustomCasesFromFirebase() {
             const customCases = await response.json();
             console.log('Raw response from Firebase:', customCases);
             
-            if (customCases && typeof customCases === 'object' && Object.keys(customCases).length > 0) {
-                // Load custom cases into CASES
-                Object.assign(CASES, customCases);
+            if (customCases) {
+                // Handle both array format (new) and object format (old)
+                if (Array.isArray(customCases)) {
+                    // New array format with order preservation
+                    const orderedCases = {};
+                    caseOrder = []; // Reset and rebuild order
+                    customCases.forEach(caseItem => {
+                        if (caseItem.id && caseItem.data) {
+                            orderedCases[caseItem.id] = caseItem.data;
+                            caseOrder.push(caseItem.id); // Track order
+                        }
+                    });
+                    Object.assign(CASES, orderedCases);
+                } else if (typeof customCases === 'object' && Object.keys(customCases).length > 0) {
+                    // Old object format
+                    Object.assign(CASES, customCases);
+                    caseOrder = Object.keys(customCases); // Use object keys as initial order
+                }
                 console.log('Successfully loaded cases:', Object.keys(CASES));
+                console.log('Case order:', caseOrder);
             } else {
                 console.log('No cases found in Firebase database');
+                caseOrder = [];
             }
         } else {
             console.error('Failed to fetch cases from Firebase. Status:', response.status);
@@ -727,32 +751,48 @@ async function loadInventoryFromFirebase() {
 }
 
 function renderCaseCards() {
-    const caseSelectionArea = document.getElementById('case-selection-container');
-    if (!caseSelectionArea) return;
-    
-    caseSelectionArea.innerHTML = '';
-    
+    const desktopIconsArea = document.getElementById('desktop-icons-area');
+    if (!desktopIconsArea) return;
+
+    desktopIconsArea.innerHTML = '';
+
+    // Add Login icon first
+    const loginIconDiv = document.createElement('div');
+    loginIconDiv.id = 'login-icon';
+    loginIconDiv.className = 'win95-desktop-icon cursor-pointer select-none';
+    loginIconDiv.onclick = () => showLoginModal();
+    loginIconDiv.innerHTML = `
+        <div class="win95-icon-bg" style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
+            <img src="https://femboy.beauty/FCGiKh" alt="Login" style="width:48px;height:48px;object-fit:cover;">
+        </div>
+        <span class="win95-icon-label">Settings</span>
+    `;
+    desktopIconsArea.appendChild(loginIconDiv);
+
     // Check if there are any cases
-    if (Object.keys(CASES).length === 0) {
-        caseSelectionArea.innerHTML = '<p class="text-gray-400 italic text-sm">No cases available. Please login and add cases in Settings.</p>';
+    if (caseOrder.length === 0) {
         return;
     }
-    
-    Object.entries(CASES).forEach(([caseId, caseData]) => {
-        const caseCard = document.createElement('div');
-        caseCard.id = `case-${caseId}`;
-        caseCard.onclick = () => selectCase(caseId);
-        caseCard.className = 'case-card w-40 h-40 cursor-pointer transition duration-200 relative overflow-hidden';
-        caseCard.setAttribute('data-case-id', caseId);
+
+    // Render cases in the order specified by caseOrder
+    caseOrder.forEach(caseId => {
+        const caseData = CASES[caseId];
+        if (!caseData) return; // Skip if case data not found
         
-        caseCard.innerHTML = `
-            <img src="${caseData.image || 'https://placehold.co/100x100/525252/ffffff?text=CASE'}" alt="${caseData.name}" class="w-full h-full object-cover">
-            <div class="case-name-overlay">
-                <p>${caseData.name}</p>
+        const iconDiv = document.createElement('div');
+        iconDiv.id = `case-icon-${caseId}`;
+        iconDiv.className = 'win95-desktop-icon cursor-pointer select-none';
+        iconDiv.setAttribute('data-case-id', caseId);
+        iconDiv.onclick = () => openCaseWindow(caseId);
+
+        iconDiv.innerHTML = `
+            <div class="win95-icon-bg" style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
+                <img src="${caseData.image || 'https://placehold.co/64x64/525252/ffffff?text=CASE'}" alt="${caseData.name}" style="width:48px;height:48px;object-fit:cover;">
             </div>
+            <span class="win95-icon-label">${caseData.name}</span>
         `;
-        
-        caseSelectionArea.appendChild(caseCard);
+
+        desktopIconsArea.appendChild(iconDiv);
     });
 }
 
@@ -768,11 +808,6 @@ window.onload = async () => {
     // Load inventory from Firebase
     await loadInventoryFromFirebase();
     
-    // Initial setup: select first case if available
-    const firstCaseId = Object.keys(CASES)[0];
-    if (firstCaseId) {
-        selectCase(firstCaseId);
-    }
     renderInventory();
     
     // Add event listeners to close modals when clicking the backdrop
